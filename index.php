@@ -27,14 +27,17 @@ if (!file_exists('./config.php')) {
     die;
 }
 
-require_once('config.php');
-require_once($CFG->dirroot .'/course/lib.php');
-require_once($CFG->libdir .'/filelib.php');
+require_once 'config.php';
+require_once $CFG->dirroot.'/course/lib.php';
+require_once $CFG->libdir.'/filelib.php';
 
 redirect_if_major_upgrade_required();
 
 $urlparams = array();
-if (!empty($CFG->defaulthomepage) && ($CFG->defaulthomepage == HOMEPAGE_MY) && optional_param('redirect', 1, PARAM_BOOL) === 0) {
+if (!empty($CFG->defaulthomepage) &&
+    $CFG->defaulthomepage === HOMEPAGE_MY &&
+    optional_param('redirect', 1, PARAM_BOOL) === 0
+) {
     $urlparams['redirect'] = 0;
 }
 $PAGE->set_url('/', $urlparams);
@@ -51,39 +54,50 @@ require_course_login($SITE);
 $hasmaintenanceaccess = has_capability('moodle/site:maintenanceaccess', context_system::instance());
 
 // If the site is currently under maintenance, then print a message.
-if (!empty($CFG->maintenance_enabled) and !$hasmaintenanceaccess) {
+if (!empty($CFG->maintenance_enabled) && !$hasmaintenanceaccess) {
     print_maintenance_message();
 }
 
 $hassiteconfig = has_capability('moodle/site:config', context_system::instance());
 
 if ($hassiteconfig && moodle_needs_upgrading()) {
-    redirect($CFG->wwwroot .'/'. $CFG->admin .'/index.php');
+    redirect($CFG->wwwroot.'/'.$CFG->admin.'/index.php');
 }
 
 // If site registration needs updating, redirect.
 \core\hub\registration::registration_reminder('/index.php');
 
-if (get_home_page() != HOMEPAGE_SITE) {
+if (get_home_page() !== HOMEPAGE_SITE) {
     // Redirect logged-in users to My Moodle overview if required.
     $redirect = optional_param('redirect', 1, PARAM_BOOL);
     if (optional_param('setdefaulthome', false, PARAM_BOOL)) {
         set_user_preference('user_home_page_preference', HOMEPAGE_SITE);
-    } else if (!empty($CFG->defaulthomepage) && ($CFG->defaulthomepage == HOMEPAGE_MY) && $redirect === 1) {
-        redirect($CFG->wwwroot .'/my/');
-    } else if (!empty($CFG->defaulthomepage) && ($CFG->defaulthomepage == HOMEPAGE_USER)) {
-        $frontpagenode = $PAGE->settingsnav->find('frontpage', null);
-        if ($frontpagenode) {
+    } else {
+        if (
+            !empty($CFG->defaulthomepage) &&
+            $CFG->defaulthomepage === HOMEPAGE_MY &&
+            1 === $redirect
+        ) {
+            redirect($CFG->wwwroot.'/my/');
+        }
+        if (
+            !empty($CFG->defaulthomepage) &&
+            HOMEPAGE_USER === $CFG->defaulthomepage
+        ) {
+            $frontpagenode = $PAGE->settingsnav->find('frontpage', null);
+            if (false === $frontpagenode) {
+                $frontpagenode = $PAGE->settingsnav->add(
+                    get_string('frontpagesettings'),
+                    null,
+                    navigation_node::TYPE_SETTING
+                );
+                $frontpagenode->force_open();
+            }
             $frontpagenode->add(
                 get_string('makethismyhome'),
                 new moodle_url('/', array('setdefaulthome' => true)),
-                navigation_node::TYPE_SETTING);
-        } else {
-            $frontpagenode = $PAGE->settingsnav->add(get_string('frontpagesettings'), null, navigation_node::TYPE_SETTING, null);
-            $frontpagenode->force_open();
-            $frontpagenode->add(get_string('makethismyhome'),
-                new moodle_url('/', array('setdefaulthome' => true)),
-                navigation_node::TYPE_SETTING);
+                navigation_node::TYPE_SETTING
+            );
         }
     }
 }
@@ -92,8 +106,8 @@ if (get_home_page() != HOMEPAGE_SITE) {
 course_view(context_course::instance(SITEID));
 
 // If the hub plugin is installed then we let it take over the homepage here.
-if (file_exists($CFG->dirroot.'/local/hub/lib.php') and get_config('local_hub', 'hubenabled')) {
-    require_once($CFG->dirroot.'/local/hub/lib.php');
+if (file_exists($CFG->dirroot.'/local/hub/lib.php') && get_config('local_hub', 'hubenabled')) {
+    require_once $CFG->dirroot.'/local/hub/lib.php';
     $hub = new local_hub();
     $continue = $hub->display_homepage();
     // Function display_homepage() returns true if the hub home page is not displayed
@@ -122,8 +136,7 @@ if (!empty($CFG->customfrontpageinclude)) {
     $modnamesplural = get_module_types_names(true);
     $mods = $modinfo->get_cms();
 
-    include($CFG->customfrontpageinclude);
-
+    include $CFG->customfrontpageinclude;
 } else if ($siteformatoptions['numsections'] > 0) {
     echo $courserenderer->frontpage_section1();
 }
